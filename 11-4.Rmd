@@ -1,0 +1,100 @@
+---
+title: "11-4"
+author: "Monique Sierra"
+date: "10/26/2020"
+output: word_document
+---
+
+#### Table of Factors Before and After
+```{r}
+data("mtcars")
+
+table(mtcars$am)
+mtcars$am <- as.factor(mtcars$am)
+levels(mtcars$am) <-c('auto','manual')
+table(mtcars$am)
+
+table(mtcars$cyl)
+mtcars$cyl <- as.factor(mtcars$cyl)
+levels(mtcars$cyl) <-c('four','six', 'eight')
+table(mtcars$cyl)
+
+table(mtcars$vs)
+mtcars$vs <- as.factor(mtcars$vs)
+levels(mtcars$vs) <-c('V','S')
+table(mtcars$vs)
+
+table(mtcars$gear)
+mtcars$gear <- as.factor(mtcars$gear)
+levels(mtcars$gear) <-c('three','four', 'five')
+table(mtcars$gear)
+
+table(mtcars$carb)
+mtcars$carb <- as.factor(mtcars$carb)
+levels(mtcars$carb) <-c('one','two', 'three', 'four', 'six', 'eight')
+table(mtcars$carb)
+
+```
+
+
+#### Glm to predict “am”
+``` {r}
+
+fit <- glm(am~disp+mpg+carb, data=mtcars, family=binomial())
+summary(fit)
+
+```
+
+
+
+#### Explain the resulting regression equation. This equation will predict log(odds). What is that? How can it be converted to probabilities?
+
+#### The resulting equation is 
+
+#### log(odds) = -1.420e+01 + 8.067e-05*disp +  6.169e-01*mpg + -4.890e-01*carbtwo + -1.454e+01*carbthree +  2.757e+00*carbfour + 2.060e+01*carbsix + 2.349e+01*carbeight 
+
+#### This equation shows the probability of the car being automatic or manual based on a number of factors. It can be converted to probability by dividing the odds by one plus the odds.
+
+
+#### How do you know if its Auto or Manual if gml predicts .88921
+```{r}
+
+contrasts(mtcars$am)
+
+```
+##### We see that "1" represents manual and "0" stands for auto,. If the gml model gives us a value of .8891, this shows the prediction is in favor of manual.
+
+#### Name, Prob of A or M, Actual Value of AM
+``` {r}
+
+mtcars$am.jazz <-round(predict(fit, mtcars, type = "response"),4)
+               
+head(mtcars[,c('am.jazz','am')],10)
+
+
+```
+#### This table shows the probability of a car being automatic or manual based on the variables 'carb','disp',and 'mpg.' From earlier, we saw manual represented by 1 and auto by 0. This table of course was not perfect, as some predictions did not follow the results, but it did give us a good idea of what the cars might generally be. 
+
+
+#### Car Name, Prob of V or Straight, VS Variable
+``` {r}
+contrasts(mtcars$vs)
+```
+
+
+```{r}
+
+coolcars <- glm(vs ~ mpg+am+hp, 
+              data = na.omit(
+              mtcars[,c('vs','mpg','am','hp')]),
+              family = "binomial")
+
+summary(coolcars)
+
+mtcars$vs.probs <- round(predict(coolcars,mtcars,type = 'response'),4)
+head(mtcars[,c('vs.probs','vs')],10)
+
+
+```
+#### This table shows the probabilities of a car being either V or S depending on the factors of "mpg", "am", and "hp." From contrasts, we see that the closer the vs.prob is to 0, the more likely it is to be V, and the closer it is to 1 the more likely it is to be S. This model appears to accurately predict the shape based off the variables provided.
+

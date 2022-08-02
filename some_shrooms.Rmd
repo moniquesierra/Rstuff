@@ -1,0 +1,165 @@
+---
+title: "4/4/21"
+author: "Monique Sierra"
+date: "4/4/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+require(C50)
+library(class)
+library(gmodels)
+mushrooms <- read.csv("~/Downloads/mushrooms.csv", stringsAsFactors = TRUE)
+shrooms <- mushrooms
+
+health <- read.csv("~/Downloads/wbcd.csv")
+health <- health[-1]
+```
+
+#1 Predictions on test set
+```{r}
+# here we set a seed so the random numbers are reproducible. This step is useful when needing to recreate the experiment or trouble shoot because it allows the values generated to be "the same random". It is also important to randomize data in order to eliminate any biases that exist in the way the values were stored, allowing us to create a more accurate training set.
+
+set.seed(123)
+train_sample <- sample(569, 450)
+
+health_train <- health[train_sample, ]
+health_test <- health[-train_sample, ]
+
+prop.table(table(health_train$diagnosis))
+prop.table(table(health_test$diagnosis))
+
+
+health_train$diagnosis <- as.factor(health_train$diagnosis)
+health_model <- C5.0(health_train[-1], health_train$diagnosis, rules = TRUE)
+
+health_pred <- predict(health_model, health_test)
+CrossTable(health_test$diagnosis, health_pred,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('actual diagnosis', 'predicted diagnosis'))
+
+# Among the 119 test instances our model was tested against, it appears to have done well. 3.4% were incorrectly said to be bad but were harmless, and 1.7% were the dangerous error, said to be harmless but actually troublesome. We are able to boost our accuracy by implementing more trials.
+```
+
+
+# Boosted predictions on test set
+```{r}
+health_boost10 <- C5.0(health_train[-1], health_train$diagnosis, trials = 10, rules = TRUE)
+
+
+health_boost_pred10 <- predict(health_boost10, health_test)
+
+CrossTable(health_test$diagnosis, health_boost_pred10,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           dnn = c('observed', 'predicted'))
+
+# The boosted model accurately reported all benign cases, but the more costly error appeared 1.7% of the time. If we consider this model being used thousands of times, we could potentially still have hundreds of deaths. This model, although good, could benefit from weighing the errors differently.
+```
+
+## matrix
+```{r}
+# Cost weighted predictions on test set 
+# From what I can tell, it doesn't appear that the data is transposed.
+
+matrix_dimensions <- list(c("B", "M"), c("B", "M"))
+names(matrix_dimensions) <- c("predicted", "actual")
+
+# I followed the examples and felt like one and five were appropriate weights for the cost matrix. Although it is inconvenient for a benign tumor to be labeled incorrectly, the opposite can prove much more disastrous, thus the heavier penalty. We see that the errors are zero for the harmless error and .017 for the unfavorable one. 
+
+error_cost <- matrix(c(0, 1, 5, 0), nrow = 2,
+                    dimnames = matrix_dimensions)
+
+health_cost <- C5.0(health_train[-1], health_train$diagnosis,
+                    costs = error_cost)
+
+health_cost_pred <- predict(health_cost, health_test)
+
+CrossTable(health_test$diagnosis, health_boost_pred10,
+           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           ddn = c('observed', 'predicted'))
+          
+
+# Below we used KNN and see that it had no true benign errors, but it falsely predicted two true malignant cases, the more deadly mistake of the two. It was the much easier model to build when compared to C5, but our decisions tree model appeared to be slightly more accurate. Both models correctly gave us all the benign instances, but in terms of false negatives, C5 has KNN by a sliver.
+
+
+normalize <- function(x) { return ((x - min(x)) / (max(x) - min(x))) }
+
+wbcd_n <- as.data.frame(lapply(health[3:31], normalize))
+
+wbcd_train <- wbcd_n[1:469, ]
+wbcd_test <- wbcd_n[470:569, ]
+
+wbcd_train_labels <- health[1:469, 1]
+wbcd_test_labels <- health[470:569, 1]
+
+
+wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test,
+                 cl = wbcd_train_labels, k = 21)
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred, prop.chisq = FALSE)
+```
+
+# mushrooms
+
+```{r}
+shrooms$veil <- NULL
+table(shrooms$type)
+library(OneR)
+
+shrooms_1R <- OneR(type ~ ., data = shrooms)
+shrooms_1R_pred <- predict(shrooms_1R, shrooms)
+
+table(actual = shrooms$type, predicted = shrooms_1R_pred)
+
+# We can see from our table OneR predicted 3796 of the 3916 as poisonous, which means 120 labeled edible could actually make you sick. This error is much worse than the opposite, (labeling benign ones as poisonous), and of those we had none. But for only using a single feature, this model gave us around 99% accuracy which is pretty groovy. 
+
+# Rules are different from decision trees in that they only take one feature and finds relationships between the values and their predictor. The decision tree, on the other hand, uses information gain to classify and label characteristics until a membership is met. This "divide and conquer" strategy also has boosting options which are incredibly helpful when some outcomes are more unfavorable than others. 
+
+```
+
+## C5 Matrix (attempt)
+```{r}
+set.seed(123)
+t_sample <- sample(8124, 6093)
+
+shrooms_train <- shrooms[t_sample, ]
+shrooms_test <- shrooms[-t_sample, ]
+
+str(shrooms_train$type)
+prop.table(table(shrooms_train$type))
+prop.table(table(shrooms_test$type))
+
+library("C50")
+shrooms_train$type <- as.factor(shrooms_train$type)
+shrooms_model <- C5.0(shrooms_train[-1], shrooms_train$type)
+
+shrooms_model
+
+# an error with the shrooms model was unforgiving. It gave me a tree size of zero despite reading and following as closely as I could, and this kept me from running the rest of the C5 model on it.
+
+# shrooms_pred <- predict(shrooms_model, shrooms_test)
+
+# CrossTable(shrooms_test$type, shrooms_pred,
+           # prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           # dnn = c('actual', 'predicted'))
+
+# matrix_dimensions <- list(c("e", "p"), c("e", "p"))
+# names(matrix_dimensions) <- c("predicted", "actual")
+
+
+
+# error_cost <- matrix(c(0, 1, 10, 0), nrow = 2,
+                   # dimnames = matrix_dimensions)
+
+# shrooms_cost <- C5.0(shrooms_train[-1], shrooms_train$type,
+                   # costs = error_cost)
+
+# shrooms_cost_pred <- predict(shrooms_cost, shrooms_test)
+
+# CrossTable(shrooms_test$type, shrooms_cost_pred,
+           # prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+           # ddn = c('observed', 'predicted'))
+
+
+```
+
+

@@ -1,0 +1,125 @@
+---
+title: "Exam 1"
+author: "Monique Sierra"
+date: "9/16/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(lubridate)
+library(readxl)
+Student.Data <- read.csv("~/Downloads/Student.Data.csv")
+summary(Student.Data)
+
+backup <-Student.Data$birth_dte
+Student.Data$birth_dte <- backup
+
+head(Student.Data$birth_dte)
+```
+
+### 1. summary of age
+
+```{r} 
+
+Student.Data$birth_dte<-mdy(as.character(Student.Data$birth_dte, rm.na= TRUE))
+
+summary(round(as.duration(Student.Data$birth_dte %--% "2009-09-15")/dyears(1),1))
+
+
+```
+##### We see the average age of students in 2009 was 17 years old, with the youngest being a mere 13 and the oldest at 35.
+
+### 2. age boxplot sept 2009
+
+```{r}
+
+boxplot(round(as.duration(Student.Data$birth_dte %--% "2009-09-15")/dyears(1),1), ylab = 'age', col = "turquoise")
+
+```
+
+##### The four outliers are apparent. We have a good visual of the majority falling between 13 and 22.
+
+### 3. significant difference of ages in males and females
+
+```{r}
+
+student.ages <-as.duration(Student.Data$birth_dte %--% "2009-09-15")/dyears(1)
+           
+
+t.test(student.ages ~ as.factor(Student.Data$gender), alternative = "two.sided")
+
+
+```
+
+##### The average age of females was 17 while that of men was 17.15. With alpha as .05, the p-value was slightly lower. This results in the rejection of the null which says the difference of their means is 0.
+
+### 4. five most popular majors
+
+```{r}
+
+TabMaj <-table(Student.Data$major_1)
+TabMaj[head(order(-TabMaj),(5))]
+
+
+```
+##### The five most popular majors are Business, Kinesiology, Undeclared, Biology, and Multidisciplinary Studies.
+
+### 5. males v females in most popular major
+```{r}
+
+table(Student.Data$major_1 == 'BUSI', Student.Data$gender)
+
+```
+##### There appears to be 62 women and 105 men studying business, the most popular major. 
+
+### 6. most pop major gpa of men v women sig dif
+```{r}
+business.gpa <- as.numeric(Student.Data$gpa,Student.Data$major == 'BUSI')
+
+t.test(business.gpa ~ as.factor(Student.Data$gender), alternative = "two.sided")
+
+```
+##### It appears that the average gpa of women in business is 2.92, while that of men in business is 2.48. Because the p-value was below alpha, we reject the null and support the alt hypothesis that they are significantly different.
+
+### 7. majors in decreasing order of gpa
+```{r}
+majors.gpa <-tapply(Student.Data$gpa,Student.Data$major_1, mean)
+
+l.to.small <-order(majors.gpa)
+
+
+gpa.major <- tapply(Student.Data$gpa,Student.Data$major_1,mean) 
+l.to.small <- order(-gpa.major)                
+gpa.major[l.to.small]
+
+
+```
+##### The major with the highest gpa appears to be accounting, and the lowest gpa as sociolgy.
+
+### 8. boxplot of term hours earned
+
+```{r}
+boxplot(Student.Data$trm_hrs_earned, ylab = 'hours earned', col = "turquoise")
+
+```
+
+##### There appears to be a significant number of outliers that fall below the first quartile. The majority of students are around 13 to 15 hours, with only a small amount going over 15.
+
+### 9. sig dif term hrs earned v hrs attempted
+```{r}
+t.test(Student.Data$trm_hrs_attempt,Student.Data$local_hrs_earned)
+
+```
+##### We see the difference of hours attempted and hours earned has a p-value much smaller than 0. Because of this we reject the null and support the alternative which states that the difference in means is not equal.
+
+### 10. HS gpa men and women
+
+```{r}
+
+mean(Student.Data[Student.Data$gender == 'F', 'HS.gpa'])
+mean(Student.Data[Student.Data$gender == 'M', 'HS.gpa'])
+
+```
+
+##### The average GPA of men is 3.25, while the GPA of women is about 3.47. The girls have a slightly higher GPA, but overall the averages appear pretty high. 

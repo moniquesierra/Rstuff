@@ -1,0 +1,86 @@
+---
+title: "knn"
+author: "Monique Sierra"
+date: "2/12/2021"
+output: word_document
+---
+
+```{r}
+library(class)
+library(dplyr)
+library(gmodels) 
+library(psych)
+
+Student.Data <- read.csv("~/Downloads/Student.Data.csv")
+student.data <- Student.Data 
+```
+
+# dates to binary
+```{r}
+library(lubridate)
+library(readxl)
+
+student.data$dte_degr_conferred <- mdy(as.character(student.data$dte_degr_conferred, rm.na = TRUE))
+
+student.data$graduated <- as.integer(student.data$dte_degr_conferred)
+
+student.data$graduated[is.na(student.data$graduated)] <- 0
+student.data$graduated[student.data$graduated > 1] <- 1
+
+```
+
+# gender to binary
+```{r}
+student.data$gender <- dummy.code(student.data$gender)
+```
+
+# normalize
+```{r}
+subset.stud <- student.data[c('graduated','gender', 'pell', 'athlete', 'major', 'gpa')]
+
+normalize <- function(x) { return ((x - min(x)) / (max(x) - min(x))) }
+
+subset.stud<- as.data.frame(lapply(subset.stud[1:6], normalize))
+
+
+```
+
+# train
+```{r}
+
+# randomize
+
+set.seed(1435)
+
+sample.data <- floor(.75 * nrow(subset.stud))
+train.data <- sample(seq_len(nrow(subset.stud)), size = sample.data)
+
+# separating sample train 
+
+student_train <-subset.stud[1:1130, ]
+student_test <- subset.stud[1131:1435, ]
+
+student_train_labels <- subset.stud[1:1130, 1]
+student_test_labels <- subset.stud[1131:1435, 1]
+
+```
+
+## choo chooo
+```{r}
+library("class")
+
+student.predict <- knn(train = data.frame(student_train), test = data.frame(student_test), cl = student_train_labels, k=39)
+
+```
+
+## ca$h money
+```{r}
+library(gmodels)
+
+CrossTable(x = student_test_labels, y = student.predict, prop.chisq = F)
+
+
+## The variables I chose to predict whether they graduated were gender, gpa, pell, athlete, major, and GPA. These variables were primarily binary aside from major and gpa. I used normalization to change the scale of those two variables to range between 0 and 1. I chose a k-value of 39 because it was close to the square root of our total observations of 1435. According to our model, there appears to be high accuracy in predicting whether they graduated as there are no false negatives or positives, but this may be an error.
+
+
+```

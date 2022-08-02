@@ -1,0 +1,61 @@
+---
+title: "chicken"
+author: "Monique Sierra"
+date: "1/31/2021"
+output: html_document
+---
+
+```{r}
+Student.Data <- read.csv("~/Downloads/Student.Data.csv")
+summary(Student.Data)
+
+backup <-Student.Data
+student.data <- backup
+```
+
+```{r cars}
+str(student.data)
+table(student.data$gender)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+library(lubridate)
+library(readxl)
+
+student.data$dte_degr_conferred <- mdy(as.character(student.data$dte_degr_conferred, rm.na= TRUE))
+summary(round(as.duration(student.data$dte_degr_conferred %--% "3000-09-15")/dyears(1),1))
+
+student.data$graduated <- as.numeric(student.data$dte_degr_conferred)
+
+student.data$graduated[is.na(student.data$graduated)] <- 0
+student.data$graduated[student.data$graduated > 1] <- 1
+
+table(student.data$graduated)
+  
+```
+```{r}
+normalize <- function(x) {
+  return ((x - min (x)) / (max(x)))
+  }
+
+student.data_n <- as.data.frame(lapply(student.data$SAT_ACT, normalize))
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

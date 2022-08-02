@@ -1,0 +1,153 @@
+---
+title: "stats"
+author: "Monique Sierra"
+date: "11/7/2020"
+output: html_document
+---
+Find a multivariable linear regression model to predict the number of infections  per million population( y)as a function of the following independent variables:
+Four Continuous9 and ordinal) variables :Population density ( population divided by area of a country), wealth as measured by Gross national Income (GNI per capita),  mean or median age of the population, ranking of healthcare system,  and two /binary variables ( assign 1 or 0): system of government (democratic or authoritarian) and  geography of a country (island or not). You need to conduct a complete analysis, specifically graph the histogram of the continuous variables( normal or at least symmetric is good). Graph y versus each continuous variable to see if there is a correlation, look at the p-values to see the significance of each variable, find correlation coefficients between pairs of continuous variables to get rid of redundant variables.
+Repeat  the regression as (a) but this time use number of death per million population as your dependent variable. 
+ Pick a couple of countries( preferably other than countries in your sample) and determine a 95% prediction interval for the number of infections and number of death. Does the actual value falls in this interval?  
+Add something of your own to the project which involves some other statistical analysis involving the same data. This may involve a parametric or non-parametric methods you learned in this course or something of your own finding . 
+State your conclusions. Specifically look at the sign and size of the  coefficients of regression equations you found in (a0 and (b). What do those coefficients tell us?
+```{r }
+
+require(ggiraph)
+require(ggiraphExtra)
+require(ggplot2)
+
+COVID_STATSforR <- read.csv(file.choose(), header = T)
+attach(COVID_STATSforR)
+head(COVID_STATSforR$geo)
+covid <-COVID_STATSforR
+
+summary(covid$geo)
+head(covid$geo)
+
+```
+Find a multivariable linear regression model to predict the number of infections per million population( y)as a function of the following independent variables:
+Four Continuous9 and ordinal) variable
+
+```{r}
+
+library(moonBook)
+heyyy = lm(pop ~ age,data=covid)
+summary(heyyy)
+plot(heyyy)
+
+
+
+
+```
+
+```{r}
+require(ggplot2)
+
+inf.age <- lm(infect ~ age, data = covid)
+summary(inf.age)
+ggplot(covid,aes(y=infect,x=age))+geom_point()+geom_smooth(method="lm")
+
+```
+
+```{r}
+library(ggformula)
+library(ggeffects)
+library(moonBook)
+
+
+
+ggpredict(fit4,interactive=TRUE)
+
+
+
+```
+```{r}
+library(ggplot2)
+library(ggformula)
+
+ggplot(data = covid,
+       mapping = aes(x = infect, y = age)) +
+  geom_point()
+
+head(covid$geo)
+covid$geo <-as.factor(covid$geo)
+covid$gov <-as.factor(covid$gov)
+
+levels(covid$gov) <-c('Dem','Auth')
+table(covid$gov)
+
+covid$geo <-levels(c("Isle","Cont"))
+covid$gov <-levels(c("Dem","Auth"))
+str(covid$gov)
+
+
+
+wealth.age <- lm(death ~ wealth, data = covid)
+plot(wealth.age)
+
+
+gf_point(deaths ~ wealth, data = covid, color =~gov, size = ~geo)
+
+
+
+```
+
+
+
+Interaction (?) infection w age * geo
+```{r}
+library(HistogramTools)
+require(ggeffects)
+
+fit4=lm(infect ~ age*geo,data=covid)
+summary(fit4)
+
+plot(fit4)
+
+
+hist.age <- hist(covid$age)
+hist.wealth <- hist(covid$wealth)
+
+PlotRelativeFrequency(hist.age, main = "age wealth", col = c1, ylim=c(0,.6), xlim=c(0,60000))
+PlotRelativeFrequency(hist.wealth, col = c2, add = TRUE)
+
+
+```
+
+
+Age
+```{r}
+
+heyo <- lm(infect ~age, data = covid)
+summary(heyo)
+plot(heyo)
+plot(heyo$fitted, heyo$residuals, xlab = "Fitted Values", ylab = "Residuals")
+abline(0,0)
+
+```
+
+random hist death v infections
+```{r}
+
+library(HistogramTools)
+
+mycol <- rgb(0, 0, 255, max = 255, alpha = 125, names = "pink50")
+mycol <- rgb(0, 0, 255, max = 255, alpha = 125, names = "blue50")
+c1 <- rgb(173,216,230,max = 255, alpha = 80, names = "lt.blue")
+c2 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
+
+hist.pop <- hist(covid$death, col = c1)
+hist.inf <- hist(covid$infect)
+
+PlotRelativeFrequency(hist.pop, main = "death v infections", col = c1, ylim=c(0,.55), xlim=c(0,45000))
+PlotRelativeFrequency(hist.inf, col = c2, add = TRUE)
+                 
+
+```
+
+```{r}
+
+
+
+
+```
